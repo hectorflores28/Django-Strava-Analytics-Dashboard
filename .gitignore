@@ -1,6 +1,7 @@
 # Archivos de Python generados por el entorno
 __pycache__/
 *.py[cod]
+*.pyc
 *$py.class
 
 # Entorno virtual
