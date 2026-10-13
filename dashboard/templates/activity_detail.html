@@ -53,76 +53,115 @@
     <div class="card mb-4">
       <div class="card-header">Map</div>
       <div class="card-body">
-        <div id="activityMap" style="height: 300px; width: 100%; border-radius: 8px;"></div>
-            <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-            <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-            <script>
-            // Función para decodificar polilíneas de Google (usadas por Strava)
-            function decodePolyline(encoded) {
-                if (!encoded) return [];
-                var points = [];
-                var index = 0, len = encoded.length;
-                var lat = 0, lng = 0;
-                while (index < len) {
-                    var b, shift = 0, result = 0;
-                    do {
-                        b = encoded.charCodeAt(index++) - 63;
-                        result |= (b & 0x1f) << shift;
-                        shift += 5;
-                    } while (b >= 0x20);
-                    var dlat = ((result & 1) ? ~(result >> 1) : (result >> 1));
-                    lat += dlat;
-                    shift = 0;
-                    result = 0;
-                    do {
-                        b = encoded.charCodeAt(index++) - 63;
-                        result |= (b & 0x1f) << shift;
-                        shift += 5;
-                    } while (b >= 0x20);
-                    var dlng = ((result & 1) ? ~(result >> 1) : (result >> 1));
-                    lng += dlng;
-                    points.push([lat / 1e5, lng / 1e5]);
-                }
-                return points;
+        <div id="activityMap" class="activity-map"></div>
+        <p id="activityMapMessage" class="small text-muted mt-2 mb-0" role="status" hidden></p>
+        {{ activity.summary_polyline|json_script:"activity-polyline" }}
+        {{ activity.start_latlng|json_script:"activity-start" }}
+        <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+        <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+        <script>
+          function decodePolyline(encoded) {
+            if (!encoded) return [];
+
+            var points = [];
+            var index = 0;
+            var latitude = 0;
+            var longitude = 0;
+
+            while (index < encoded.length) {
+              var byte;
+              var shift = 0;
+              var result = 0;
+              do {
+                byte = encoded.charCodeAt(index++) - 63;
+                result |= (byte & 0x1f) << shift;
+                shift += 5;
+              } while (byte >= 0x20);
+              latitude += (result & 1) ? ~(result >> 1) : (result >> 1);
+
+              shift = 0;
+              result = 0;
+              do {
+                byte = encoded.charCodeAt(index++) - 63;
+                result |= (byte & 0x1f) << shift;
+                shift += 5;
+              } while (byte >= 0x20);
+              longitude += (result & 1) ? ~(result >> 1) : (result >> 1);
+
+              points.push([latitude / 1e5, longitude / 1e5]);
             }
 
-            document.addEventListener('DOMContentLoaded', function() {
-              var encodedPolyline = "{{ activity.summary_polyline|safe }}";
-              
-              if (encodedPolyline && encodedPolyline !== "None" && encodedPolyline !== "") {
-                var coordinates = decodePolyline(encodedPolyline);
-                
-                var map = L.map('activityMap');
-                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                  maxZoom: 18,
-                  attribution: '© OpenStreetMap contributors'
-                }).addTo(map);
+            return points;
+          }
 
-                var route = L.polyline(coordinates, {
-                  color: '#ff4400',
-                  weight: 4,
-                  opacity: 0.8,
-                  lineJoin: 'round'
-                }).addTo(map);
+          document.addEventListener('DOMContentLoaded', function() {
+            var mapElement = document.getElementById('activityMap');
+            var mapMessage = document.getElementById('activityMapMessage');
+            var encodedPolyline = JSON.parse(
+              document.getElementById('activity-polyline').textContent
+            );
+            var encodedStart = JSON.parse(
+              document.getElementById('activity-start').textContent
+            );
+            var startPoint = encodedStart ? JSON.parse(encodedStart) : null;
 
-                map.fitBounds(route.getBounds(), { padding: [20, 20] });
-              } else {
-                var start_latlng = {{ activity.start_latlng|safe|default:"null" }};
-                if (!start_latlng) {
-                    start_latlng = [19.4326, -99.1332]; // Default CDMX
-                }
-                var map = L.map('activityMap').setView(start_latlng, 13);
-                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                  maxZoom: 18,
-                  attribution: '© OpenStreetMap contributors'
-                }).addTo(map);
-                
-                L.marker(start_latlng).addTo(map)
-                  .bindPopup('Start Point')
-                  .openPopup();
-              }
+            if (!window.L) {
+              mapMessage.textContent = 'The map could not load. Check your connection and reload the page.';
+              mapMessage.hidden = false;
+              return;
+            }
+
+            var coordinates = decodePolyline(encodedPolyline).filter(function(point) {
+              return Number.isFinite(point[0]) && Number.isFinite(point[1]);
             });
-            </script>
+            var hasStartPoint = Array.isArray(startPoint) &&
+              startPoint.length === 2 &&
+              Number.isFinite(startPoint[0]) &&
+              Number.isFinite(startPoint[1]);
+
+            if (!coordinates.length && !hasStartPoint) {
+              mapElement.hidden = true;
+              mapMessage.textContent = 'This activity has no GPS data to display.';
+              mapMessage.hidden = false;
+              return;
+            }
+
+            var map = L.map(mapElement);
+            var basemap = L.tileLayer(
+              'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}',
+              {
+                maxZoom: 19,
+                attribution: 'Sources: Esri, HERE, Garmin, USGS, Intermap, INCREMENT P, NRCan, Esri Japan, METI, Esri China (Hong Kong), Esri Korea, Esri (Thailand), NGCC, © OpenStreetMap contributors, and the GIS User Community'
+              }
+            );
+
+            basemap.on('tileerror', function() {
+              mapMessage.textContent = 'The route is available, but map tiles could not be loaded. Check your connection.';
+              mapMessage.hidden = false;
+            });
+            basemap.addTo(map);
+
+            var route = null;
+            if (coordinates.length > 1) {
+              route = L.polyline(coordinates, {
+                color: '#fc4c02',
+                weight: 4,
+                opacity: 0.9,
+                lineJoin: 'round'
+              }).addTo(map);
+            }
+
+            if (hasStartPoint) {
+              L.marker(startPoint).addTo(map).bindPopup('Start point');
+            }
+
+            if (route) {
+              map.fitBounds(route.getBounds(), { padding: [20, 20] });
+            } else {
+              map.setView(hasStartPoint ? startPoint : coordinates[0], 14);
+            }
+          });
+        </script>
       </div>
     </div>
   </div>

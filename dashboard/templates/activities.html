@@ -5,10 +5,21 @@
     <div class="col-md-12">
         <h1>Activities</h1>
 
-    <!-- Filter Form -->
     <form method="GET" class="row g-3 mb-4">
-        <div class="col-md-3">
-            <select name="type" class="form-select">
+        <div class="col-md-5">
+            <label for="activitySearch" class="form-label">Search by name</label>
+            <input
+                id="activitySearch"
+                type="search"
+                name="q"
+                class="form-control"
+                placeholder="e.g. Morning run"
+                value="{{ search_query }}"
+            >
+        </div>
+        <div class="col-md-4">
+            <label for="activityType" class="form-label">Activity type</label>
+            <select id="activityType" name="type" class="form-select">
                 <option value="">All Activity Types</option>
                 {% for type in activity_types %}
                     <option value="{{ type }}" {% if selected_type == type %}selected{% endif %}>
@@ -17,48 +28,56 @@
                 {% endfor %}
             </select>
         </div>
-        <div class="col-md-2">
+        <div class="col-md-3 d-flex align-items-end gap-2">
             <button type="submit" class="btn btn-primary">
-                Filter
+                <i class="bi bi-search"></i> Search
             </button>
+            {% if search_query or selected_type %}
+            <a href="{% url 'activities' %}" class="btn btn-outline-secondary">Clear</a>
+            {% endif %}
         </div>
     </form>
 
-    <!-- Activities List -->
     {% if activities %}
-    <div class="list-group">
-        {% for activity in activities %}
-    <a href="{% url 'activity_detail' activity.id %}" class="list-group-item list-group-item-action">
-        <div class="d-flex w-100 justify-content-between">
-            <h5 class="mb-1">{{ activity.name }}</h5>
-            <small>{{ activity.start_date_local|date:'M d, Y' }}</small>
-        </div>
-            <p class="mb-1">
-                <span class="badge bg-primary">
-                    {{ activity.type }}
-                </span>
-                <span class="badge bg-secondary">
-                    {{ activity.distance_km|floatformat:2 }} km
-                </span>
-                <span class="badge bg-info">
-                    {{ activity.moving_time_formatted }}
-                </span>
-                {% if activity.total_elevation_gain %}
-                    <span class="badge bg-success">
-                        {{ activity.total_elevation_gain|floatformat:0 }} m elevation
-                </span>
-    {% endif %}
-            </p>
-    </a>
-        {% endfor %}
+    <div class="table-responsive">
+        <table class="table table-hover align-middle">
+            <thead>
+                <tr>
+                    <th scope="col">Date</th>
+                    <th scope="col">Name</th>
+                    <th scope="col">Type</th>
+                    <th scope="col">Distance</th>
+                    <th scope="col">Moving time</th>
+                    <th scope="col">Elevation</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for activity in activities %}
+                <tr>
+                    <td class="text-nowrap">{{ activity.start_date_local|date:'M d, Y' }}</td>
+                    <td>
+                        <a class="fw-semibold" href="{% url 'activity_detail' activity.id %}">
+                            {{ activity.name }}
+                        </a>
+                    </td>
+                    <td><span class="badge bg-primary">{{ activity.type }}</span></td>
+                    <td class="text-nowrap">{{ activity.distance_km|floatformat:2 }} km</td>
+                    <td class="text-nowrap">{{ activity.moving_time_formatted }}</td>
+                    <td class="text-nowrap">{{ activity.total_elevation_gain|floatformat:0 }} m</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
     </div>
 
-    <!-- Pagination -->
+    <p class="text-muted text-center small">
+        {{ page_obj.paginator.count }} activities found
+    </p>
     <nav class="mt-4">
         <ul class="pagination justify-content-center">
             {% if page_obj.has_previous %}
                 <li class="page-item">
-                    <a class="page-link" href="{% url 'activities' %}?page={{ page_obj.previous_page_number }}{% if selected_type %}&type={{ selected_type }}{% endif %}">
+                    <a class="page-link" href="{% url 'activities' %}?page={{ page_obj.previous_page_number }}{% if query_string %}&amp;{{ query_string }}{% endif %}">
                         Previous
                     </a>
                 </li>
@@ -77,7 +96,7 @@
                         <li class="page-item active"><span class="page-link">{{ num }}</span></li>
                     {% else %}
                         <li class="page-item">
-                            <a class="page-link" href="{% url 'activities' %}?page={{ num }}{% if selected_type %}&type={{ selected_type }}{% endif %}">
+                            <a class="page-link" href="{% url 'activities' %}?page={{ num }}{% if query_string %}&amp;{{ query_string }}{% endif %}">
                                 {{ num }}
                             </a>
                         </li>
@@ -86,7 +105,7 @@
 
                 {% if page_obj.has_next %}
                 <li class="page-item">
-                    <a class="page-link" href="{% url 'activities' %}?page={{ page_obj.next_page_number }}{% if selected_type %}&type={{ selected_type }}{% endif %}">
+                    <a class="page-link" href="{% url 'activities' %}?page={{ page_obj.next_page_number }}{% if query_string %}&amp;{{ query_string }}{% endif %}">
                         Next
                     </a>
                 </li>
@@ -97,39 +116,13 @@
                     </span>
                 </li>
             {% endif %}
-
-            {% for num in page_range %}
-                {% if num is None %}
-                    <li class="page-item disabled"><span class="page-link">…</span></li>
-                {% elif page_obj.number == num %}
-                    <li class="page-item active"><span class="page-link">{{ num }}</span></li>
-                {% else %}
-                    <li class="page-item">
-                        <a class="page-link" href="{% url 'activities' %}?page={{ num }}{% if selected_type %}&type={{ selected_type }}{% endif %}">{{ num }}</a>
-                    </li>
-                {% endif %}
-            {% endfor %}
-
-            {% if page_obj.has_next %}
-            <li class="page-item">
-                <a class="page-link" href="{% url 'activities' %}?page={{ page_obj.next_page_number }}{% if selected_type %}&type={{ selected_type }}{% endif %}">
-                    Next
-                </a>
-            </li>
-            {% else %}
-            <li class="page-item disabled">
-                <span class="page-link">
-                    Next
-                </span>
-            </li>
-            {% endif %}
         </ul>
     </nav>
 
         {% else %}
         <div class="alert alert-info" role="alert">
             No activities found.
-            {% if selected_type %}
+            {% if selected_type or search_query %}
             Try changing your filter or 
                 <a href="{% url 'refresh_activities' %}">
                     refresh your data

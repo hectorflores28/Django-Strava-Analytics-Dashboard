@@ -1,10 +1,8 @@
-version: '3.8'
-
 services:
   web:
     build: .
     container_name: django_strava_app
-    command: python manage.py runserver 0.0.0.0:8000
+    command: sh -c "python manage.py migrate --noinput && python manage.py collectstatic --noinput && python manage.py runserver 0.0.0.0:8000"
     volumes:
       - .:/app
     ports:
@@ -13,3 +11,4 @@ services:
       - .env
     environment:
       - DJANGO_SETTINGS_MODULE=strava_analytics.settings
+      - DJANGO_DEBUG=True

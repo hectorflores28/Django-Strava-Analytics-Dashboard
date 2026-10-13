@@ -3,9 +3,9 @@
   <div class="card-body">
     <h5 class="card-title">Progreso de Meta Mensual</h5>
     <p>Meta: <strong>{{ meta_mensual }} km</strong></p>
-    <div class="progress mb-2" style="height: 30px">
+    <div class="progress monthly-goal-progress mb-2">
       <div
-        class="progress-bar bg-success"
+        class="progress-bar"
         role="progressbar"
         style="width: {{ avance_porcentaje }}%;"
         aria-valuenow="{{ avance_mensual|floatformat:2 }}"

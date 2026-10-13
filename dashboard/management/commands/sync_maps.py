@@ -36,7 +36,7 @@ class Command(BaseCommand):
                         'page': page,
                         'per_page': 50,
                     }
-                    headers = {'Authorization': f'Bearer {access_token}'}
+                    headers = {'Authorization': 'Bearer ' + access_token}
                     response = s.get(activities_url, headers=headers, params=params)
                     
                     if response.status_code != 200:

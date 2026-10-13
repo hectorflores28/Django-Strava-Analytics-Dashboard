@@ -1,6 +1,6 @@
 import requests
 import os
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone as datetime_timezone
 from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse
 from django.conf import settings
@@ -78,8 +78,8 @@ def index(request):
         'avance_mensual': current_distance,
         'avance_porcentaje': goal_percentage,
         # Pasamos los datos del gráfico como JSON para ser usados en JavaScript
-        'chart_labels': json.dumps(chart_labels),
-        'chart_data': json.dumps(chart_data),
+        'chart_labels': chart_labels,
+        'chart_data': chart_data,
     }
 
     return render(request, 'index.html', context)
@@ -328,7 +328,7 @@ def fetch_and_sync_activities(athlete, access_token):
                 'per_page': 50,
                 'after': after_timestamp # Solo actividades después de este timestamp
             }
-            headers = {'Authorization': f'Bearer {access_token}'}
+            headers = {'Authorization': 'Bearer ' + access_token}
 
             response = s.get(activities_url, headers=headers, params=params)
             response.raise_for_status()
@@ -340,8 +340,12 @@ def fetch_and_sync_activities(athlete, access_token):
             # 3. Sincronizar con la DB
             for item in strava_activities:
                 # Convertir la fecha UTC (string) a objeto datetime
-                start_date_utc = datetime.strptime(item['start_date'], '%Y-%m-%dT%H:%M:%SZ').replace(tzinfo=timezone.utc)
-                start_date_local = datetime.strptime(item['start_date_local'], '%Y-%m-%dT%H:%M:%SZ').replace(tzinfo=timezone.utc)
+                start_date_utc = datetime.strptime(
+                    item['start_date'], '%Y-%m-%dT%H:%M:%SZ'
+                ).replace(tzinfo=datetime_timezone.utc)
+                start_date_local = datetime.strptime(
+                    item['start_date_local'], '%Y-%m-%dT%H:%M:%SZ'
+                ).replace(tzinfo=datetime_timezone.utc)
 
                 # Extraer datos de mapa si existen
                 map_data = item.get('map', {})
@@ -350,7 +354,7 @@ def fetch_and_sync_activities(athlete, access_token):
                 end_latlng = item.get('end_latlng')
 
                 # Crear o actualizar la actividad
-                Activity.objects.update_or_create(
+                _, created = Activity.objects.update_or_create(
                     id=item['id'],
                     defaults={
                         'athlete': athlete,
@@ -374,7 +378,8 @@ def fetch_and_sync_activities(athlete, access_token):
                         'end_latlng': json.dumps(end_latlng) if end_latlng else None,
                     }
                 )
-                new_activities_count += 1
+                if created:
+                    new_activities_count += 1
                 
             page += 1
             # Strava tiene un límite de 200 por página, pero 50 es más seguro.
@@ -414,8 +419,9 @@ def activities_list(request):
         messages.warning(request, "Please log in to see your activities.")
         return redirect('login')
 
-    # 1. Obtener el filtro (Query Parameter)
+    # 1. Obtener los filtros (Query Parameters)
     selected_type = request.GET.get('type')
+    search_query = request.GET.get('q', '').strip()
 
     # 2. Construir el QuerySet base
     activities_queryset = Activity.objects.filter(athlete=athlete)
@@ -423,6 +429,8 @@ def activities_list(request):
     # 3. Aplicar filtro
     if selected_type:
         activities_queryset = activities_queryset.filter(type=selected_type)
+    if search_query:
+        activities_queryset = activities_queryset.filter(name__icontains=search_query)
 
     # Obtener todos los tipos únicos para el dropdown de filtrado
     activity_types = Activity.objects.filter(athlete=athlete).values_list('type', flat=True).distinct().order_by('type')
@@ -432,6 +440,8 @@ def activities_list(request):
     
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
+    query_parameters = request.GET.copy()
+    query_parameters.pop('page', None)
     
     # activities.items -> page_obj.object_list
     # activities.has_next -> page_obj.has_next
@@ -468,6 +478,8 @@ def activities_list(request):
         'activities': page_obj.object_list,
         'activity_types': activity_types,
         'selected_type': selected_type,
+        'search_query': search_query,
+        'query_string': query_parameters.urlencode(),
         'page_range': get_page_range(page_obj.number, paginator.num_pages),
         'athlete': athlete,
     }

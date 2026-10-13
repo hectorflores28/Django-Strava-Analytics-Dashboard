@@ -2,95 +2,134 @@
 
 {% load static %} 
 {% block content %}
-<div class="row">
-    <div class="col-md-12">
+<div class="dashboard-heading">
+    <div>
         <h1>Dashboard</h1>
         <p class="text-muted">
             Welcome, {{ athlete.firstname|default:"User" }}. 
             Here is your Strava Analytics Dashboard.
         </p>
     </div>
+    {% if is_authenticated %}
+    <a class="btn btn-primary" href="{% url 'refresh_activities' %}">
+        <i class="bi bi-arrow-clockwise"></i>
+        Refresh data
+    </a>
+    {% endif %}
 </div>
 
 {% if is_authenticated %}
 <div class="row mt-4">
     <div class="col-md-6 col-lg-3 mb-4">
-        <div class="card">
+        <div class="card dashboard-summary-card">
             <div class="card-body">
                 <h5 class="card-title">Today</h5>
-                <div class="d-flex justify-content-between"><div>
-                    <p class="card-text mb-0">
+                <div class="dashboard-metrics">
+                    <div class="dashboard-metric">
+                        <span class="metric-label">
                         <i class="bi bi-activity"></i>
-                        Activities: {{ today.count }}
-                    </p>
-                    <p class="card-text mb-0">
+                        Activities
+                        </span>
+                        <strong>{{ today.count }}</strong>
+                    </div>
+                    <div class="dashboard-metric">
+                        <span class="metric-label">
                         <i class="bi bi-signpost"></i>
-                        Distance: {{ today.distance|floatformat:2 }} km
-                    </p>
-                </div><div>
-                    <p class="card-text mb-0">
+                        Distance
+                        </span>
+                        <strong>{{ today.distance|floatformat:2 }} km</strong>
+                    </div>
+                    <div class="dashboard-metric">
+                        <span class="metric-label">
                         <i class="bi bi-mountain"></i>
-                        Elevation: {{ today.elevation|floatformat:0 }} m
-                    </p>
-                    <p class="card-text mb-0">
+                        Elevation
+                        </span>
+                        <strong>{{ today.elevation|floatformat:0 }} m</strong>
+                    </div>
+                    <div class="dashboard-metric">
+                        <span class="metric-label">
                         <i class="bi bi-clock"></i>
-                        Time: {{ today.time|floatformat:2 }} h
-                    </p>
-                </div></div>
+                        Time
+                        </span>
+                        <strong>{{ today.time|floatformat:2 }} h</strong>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 
     <div class="col-md-6 col-lg-3 mb-4">
-        <div class="card">
+        <div class="card dashboard-summary-card">
             <div class="card-body">
                 <h5 class="card-title">This Week</h5>
-                <div class="d-flex justify-content-between"><div>
-                    <p class="card-text mb-0">
+                <div class="dashboard-metrics">
+                    <div class="dashboard-metric">
+                        <span class="metric-label">
                         <i class="bi bi-activity"></i>
-                        Activities: {{ this_week.count }}</p>
-                    <p class="card-text mb-0">
+                        Activities
+                        </span>
+                        <strong>{{ this_week.count }}</strong>
+                    </div>
+                    <div class="dashboard-metric">
+                        <span class="metric-label">
                         <i class="bi bi-signpost"></i>
-                        Distance: {{ this_week.distance|floatformat:2 }} km
-                    </p>
-                </div><div>
-                    <p class="card-text mb-0">
+                        Distance
+                        </span>
+                        <strong>{{ this_week.distance|floatformat:2 }} km</strong>
+                    </div>
+                    <div class="dashboard-metric">
+                        <span class="metric-label">
                         <i class="bi bi-mountain"></i>
-                        Elevation: {{ this_week.elevation|floatformat:0 }} m
-                    </p>
-                    <p class="card-text mb-0">
+                        Elevation
+                        </span>
+                        <strong>{{ this_week.elevation|floatformat:0 }} m</strong>
+                    </div>
+                    <div class="dashboard-metric">
+                        <span class="metric-label">
                         <i class="bi bi-clock"></i>
-                        Time: {{ this_week.time|floatformat:2 }} h
-                    </p>
-                </div></div>
+                        Time
+                        </span>
+                        <strong>{{ this_week.time|floatformat:2 }} h</strong>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 
     <div class="col-md-6 col-lg-3 mb-4">
-        <div class="card">
+        <div class="card dashboard-summary-card">
             <div class="card-body">
                 <h5 class="card-title">This Month</h5>
-                <div class="d-flex justify-content-between"><div>
-                    <p class="card-text mb-0">
+                <div class="dashboard-metrics">
+                    <div class="dashboard-metric">
+                        <span class="metric-label">
                         <i class="bi bi-activity"></i>
-                        Activities: {{ this_month.count }}
-                    </p>
-                    <p class="card-text mb-0">
+                        Activities
+                        </span>
+                        <strong>{{ this_month.count }}</strong>
+                    </div>
+                    <div class="dashboard-metric">
+                        <span class="metric-label">
                         <i class="bi bi-signpost"></i>
-                        Distance: {{ this_month.distance|floatformat:2 }} km
-                    </p>
-                </div>
-                <div>
-                    <p class="card-text mb-0">
+                        Distance
+                        </span>
+                        <strong>{{ this_month.distance|floatformat:2 }} km</strong>
+                    </div>
+                    <div class="dashboard-metric">
+                        <span class="metric-label">
                         <i class="bi bi-mountain"></i>
-                        Elevation: {{ this_month.elevation|floatformat:0 }} m
-                    </p>
-                    <p class="card-text mb-0">
+                        Elevation
+                        </span>
+                        <strong>{{ this_month.elevation|floatformat:0 }} m</strong>
+                    </div>
+                    <div class="dashboard-metric">
+                        <span class="metric-label">
                         <i class="bi bi-clock"></i>
-                        Time: {{ this_month.time|floatformat:2 }} h
-                    </p>
-                </div></div>
+                        Time
+                        </span>
+                        <strong>{{ this_month.time|floatformat:2 }} h</strong>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -137,16 +176,17 @@
                             <small>{{ activity.start_date_local|date:"M d" }}</small>
                         </div>
                         <p class="mb-1">
-                            {{ activity.get_distance_km|floatformat:2 }} km •
-                            {{ activity.get_moving_time_minutes }} min •
+                            {{ activity.distance_km|floatformat:2 }} km •
+                            {{ activity.moving_time_formatted }} •
                             {{ activity.type }}
                         </p>
                     </a>
                     {% endfor %}
                 </div>
                 {% else %}
-                <p class="card-text">
-                    No activities found
+                <p class="card-text text-muted">
+                    No activities found yet.
+                    <a href="{% url 'refresh_activities' %}">Sync your Strava data</a> to populate this dashboard.
                 </p>
                 {% endif %}
             </div>
@@ -154,11 +194,14 @@
     </div>
 
     <div class="col-md-6">
-        <div class="card" style="height: 405.95px !important; margin-top: 0px;">
+        <div class="card dashboard-chart-card">
             <div class="card-body">
                 <h5 class="card-title">Activity Distribution</h5>
-                <div style="height: 300px;">
-                    <canvas id="activityChart" width="400" height="200"></canvas>
+                <div class="dashboard-chart">
+                    <canvas id="activityChart" aria-label="Activity distribution by type" role="img"></canvas>
+                    <p id="activityChartEmpty" class="chart-empty-state text-muted" aria-live="polite">
+                        Sync activities from Strava to see your activity distribution.
+                    </p>
                 </div>
             </div>
         </div>
@@ -167,14 +210,14 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        const ctx = document.getElementById('activityChart').getContext('2d');
-        
-        // Inyectamos los datos del contexto de Django al script de forma segura
-        const chartLabels = {{ chart_labels|safe }};
-        const chartData = {{ chart_data|safe }};
+        const chartCanvas = document.getElementById('activityChart');
+        const chartLabels = JSON.parse(document.getElementById('activity-chart-labels').textContent);
+        const chartData = JSON.parse(document.getElementById('activity-chart-data').textContent);
+        const emptyState = document.getElementById('activityChartEmpty');
 
-        if (chartData.length > 0) {
-            const activityChart = new Chart(ctx, {
+        if (chartData.length > 0 && window.Chart) {
+            emptyState.hidden = true;
+            new Chart(chartCanvas, {
                 type: 'doughnut',
                 data: {
                     labels: chartLabels,
@@ -201,6 +244,8 @@
         }
     });
 </script>
+{{ chart_labels|json_script:"activity-chart-labels" }}
+{{ chart_data|json_script:"activity-chart-data" }}
 {% else %}
 <div class="row mt-4">
     <div class="col-md-12 text-center">

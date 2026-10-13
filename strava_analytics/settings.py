@@ -14,6 +14,7 @@ import os
 from datetime import timedelta
 from pathlib import Path
 from dotenv import load_dotenv
+from django.core.management.utils import get_random_secret_key
 
 load_dotenv()
 
@@ -24,7 +25,12 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.getenv('SECRET_KEY', 'default-django-secret-key-if-not-set')
+DEBUG = os.getenv('DJANGO_DEBUG', 'False').lower() in {'true', '1', 'yes'}
+SECRET_KEY = os.getenv('SECRET_KEY') or (
+    get_random_secret_key() if DEBUG else ''
+)
+if not SECRET_KEY:
+    raise RuntimeError('Set SECRET_KEY in the deployment environment.')
 
 # Credenciales de Strava
 STRAVA_CLIENT_ID = os.getenv('STRAVA_CLIENT_ID')
@@ -37,14 +43,29 @@ STRAVA_OAUTH_URL = 'https://www.strava.com/oauth'
 # Configuración de sesión para manejar la expiración del token (opcional pero útil)
 SESSION_COOKIE_AGE = 60 * 60 * 24 * 7  # 1 semana (ajustar según el ciclo de refresco del token)
 
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
-
 ALLOWED_HOSTS = [
     '127.0.0.1',
     'localhost',
     '192.168.41.139',
+    'django-strava-analytics-dashboard.onrender.com',
+] + [
+    host.strip()
+    for host in os.getenv('ALLOWED_HOSTS', '').split(',')
+    if host.strip()
 ]
+
+CSRF_TRUSTED_ORIGINS = [
+    'http://localhost:8000',
+    'https://django-strava-analytics-dashboard.onrender.com',
+] + [
+    origin.strip().rstrip('/')
+    for origin in os.getenv('CSRF_TRUSTED_ORIGINS', '').split(',')
+    if origin.strip()
+]
+
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+SESSION_COOKIE_SECURE = not DEBUG
+CSRF_COOKIE_SECURE = not DEBUG
 
 # Application definition
 
@@ -60,6 +81,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -94,7 +116,7 @@ WSGI_APPLICATION = 'strava_analytics.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'strava.db',
+        'NAME': os.getenv('DATABASE_PATH', str(BASE_DIR / 'strava.db')),
     }
 }
 
@@ -131,6 +153,15 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/4.2/howto/static-files/
 
 STATIC_URL = 'static/'
+STATIC_ROOT = BASE_DIR / 'staticfiles'
+STORAGES = {
+    'default': {
+        'BACKEND': 'django.core.files.storage.FileSystemStorage',
+    },
+    'staticfiles': {
+        'BACKEND': 'whitenoise.storage.CompressedManifestStaticFilesStorage',
+    },
+}
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field

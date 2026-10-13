@@ -17,6 +17,7 @@ COPY . /app/
 
 # Expose port 8000 for Django
 EXPOSE 8000
+ENV PORT=8000
 
-# Command to run the application (in development)
-CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]
+# Run Django behind a production WSGI server. Render provides PORT at runtime.
+CMD ["sh", "-c", "python manage.py migrate --noinput && python manage.py collectstatic --noinput && gunicorn strava_analytics.wsgi:application --bind 0.0.0.0:${PORT:-8000}"]

@@ -53,6 +53,27 @@ Una aplicación web local completa para rastrear y analizar tus datos de activid
 
 ### Instrucciones de Configuración
 
+### Desplegar en Render
+
+1. Crea un servicio **Web Service** conectado al repositorio y selecciona **Docker** como runtime.
+2. En **Environment**, añade `SECRET_KEY` (genera una clave nueva y privada), `DJANGO_DEBUG=False`, `STRAVA_CLIENT_ID` y `STRAVA_CLIENT_SECRET`. `PORT` lo proporciona Render.
+3. Si quieres conservar actividades y tokens entre despliegues, añade un Persistent Disk (requiere una instancia compatible de pago) montado en `/var/data` y configura `DATABASE_PATH=/var/data/strava.db`. Sin un disco persistente, SQLite se perderá al recrear el servicio.
+4. En [Strava API Settings](https://www.strava.com/settings/api), establece **Authorization Callback Domain** a `django-strava-analytics-dashboard.onrender.com` (sin `https://` ni `/`). El campo **Website** puede ser `https://django-strava-analytics-dashboard.onrender.com/`.
+5. Cuando Strava solicite la URL completa de callback, usa `https://django-strava-analytics-dashboard.onrender.com/callback/`. La aplicación la genera automáticamente desde la petición HTTPS de Render.
+6. `ALLOWED_HOSTS` y `CSRF_TRUSTED_ORIGINS` incluyen este dominio en la configuración. Si usas un dominio personalizado, añade su hostname a `ALLOWED_HOSTS` y su origen HTTPS a `CSRF_TRUSTED_ORIGINS` en las variables de Render.
+
+### Ejecutar con Docker Compose
+
+- Configura las credenciales en el archivo `.env`.
+- Desde la raíz del proyecto, construye e inicia la aplicación:
+  ```bash
+  docker compose up --build
+  ```
+  Al iniciar, el contenedor aplica las migraciones de Django antes de ejecutar el servidor.
+- Abre http://localhost:8000.
+
+Si el contenedor ya estaba iniciado, vuelve a ejecutar `docker compose up --build` para recrearlo con el comando actualizado.
+
 1. **Clonar el repositorio**
    ```bash
    git clone https://github.com/hectorflores28/django-strava-analytics-dashboard
